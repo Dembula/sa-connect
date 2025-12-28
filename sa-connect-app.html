@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SA Connect - Digital Identity Platform</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            background: #020617;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        // Mock Data
+        const mockUser = {
+            id: "8301015800083",
+            name: "Thabo Mbeki",
+            firstName: "Thabo",
+            lastName: "Mbeki",
+            email: "thabo.mbeki@example.co.za",
+            phone: "+27 82 123 4567",
+            address: "123 Sandton Drive, Sandton, Johannesburg, 2196",
+            verified: true,
+            memberSince: "2022-03-15",
+            profileImage: "TM"
+        };
+        
+        const mockDocuments = {
+            driversLicense: {
+                number: "7800123456789",
+                issueDate: "2021-06-20",
+                expiryDate: "2026-06-20",
+                status: "active",
+                licenseType: "Code 08 (EB)",
+                codes: ["Code 08 - Light Motor Vehicle", "Code EB - Light Motor Vehicle (Manual)"],
+                restrictions: "None",
+                prdpExpiry: "2022-06-20",
+                testingCenter: "Randburg Driving Licence Testing Centre",
+                issueOffice: "Randburg DLTC",
+                nextRenewal: "18 months",
+                demeritPoints: 0,
+                endorsements: []
+            },
+            idDocument: {
+                number: "8301015800083",
+                issueDate: "2020-03-15",
+                expiryDate: "2030-03-15",
+                status: "active",
+                type: "Smart ID Card",
+                citizenship: "South African",
+                countryOfBirth: "South Africa",
+                maritalStatus: "Single",
+                issueOffice: "Sandton Home Affairs Office"
+            },
+            passport: {
+                number: "M00123456",
+                issueDate: "2022-01-10",
+                expiryDate: "2032-01-10",
+                status: "active",
+                type: "Ordinary Passport",
+                placeOfIssue: "Pretoria Home Affairs Office",
+                nationality: "South African",
+                visaPages: "48 pages",
+                visasUsed: 8,
+                issuingAuthority: "Department of Home Affairs"
+            }
+        };
+        
+        const services = [
+            { 
+                id: 'drivers-license', 
+                name: "Driver's Licence",
+                description: "Manage your driving credentials",
+                icon: 'car', 
+                color: '#06B6D4',
+                category: 'Transport'
+            },
+            { 
+                id: 'id-document', 
+                name: "Identity Document",
+                description: "South African ID management",
+                icon: 'credit-card', 
+                color: '#8B5CF6',
+                category: 'Identity'
+            },
+            { 
+                id: 'passport', 
+                name: "Passport Services",
+                description: "Travel document services",
+                icon: 'plane', 
+                color: '#F59E0B',
+                category: 'Travel'
+            },
+            { 
+                id: 'home-loan', 
+                name: "Home Loan Applications",
+                description: "Mortgage and property finance",
+                icon: 'home', 
+                color: '#10B981',
+                category: 'Finance'
+            },
+            { 
+                id: 'nsfas', 
+                name: "NSFAS Student Funding",
+                description: "National Student Financial Aid",
+                icon: 'graduation-cap', 
+                color: '#EF4444',
+                category: 'Education'
+            },
+            { 
+                id: 'national-treasury', 
+                name: "National Treasury Portal",
+                description: "Government procurement & contracts",
+                icon: 'building-2', 
+                color: '#6366F1',
+                category: 'Government'
+            },
+            { 
+                id: 'sars', 
+                name: "SARS Tax Services",
+                description: "South African Revenue Service",
+                icon: 'receipt', 
+                color: '#EC4899',
+                category: 'Tax'
+            },
+            { 
+                id: 'device-registry', 
+                name: "Device Registry & Tracking",
+                description: "Register and track your devices",
+                icon: 'smartphone', 
+                color: '#14B8A6',
+                category: 'Security'
+            },
+            { 
+                id: 'credit-bureau', 
+                name: "Credit Bureau Check",
+                description: "View your credit profile",
+                icon: 'bar-chart-3', 
+                color: '#A855F7',
+                category: 'Finance'
+            },
+            { 
+                id: 'unemployment-insurance', 
+                name: "UIF Claims",
+                description: "Unemployment Insurance Fund",
+                icon: 'shield', 
+                color: '#F97316',
+                category: 'Social Services'
+            },
+            { 
+                id: 'company-registration', 
+                name: "CIPC Company Registration",
+                description: "Register & manage companies",
+                icon: 'briefcase', 
+                color: '#3B82F6',
+                category: 'Business'
+            },
+            { 
+                id: 'vital-records', 
+                name: "Vital Records",
+                description: "Birth & death certificates",
+                icon: 'file-text', 
+                color: '#84CC16',
+                category: 'Identity'
+            }
+        ];
+        
+        // Icon Component
+        const Icon = ({ name, className = "", size = 24 }) => {
+            useEffect(() => {
+                lucide.createIcons();
+            });
+            return React.createElement('i', {
+                'data-lucide': name,
+                className: className,
+                style: { width: size, height: size }
+            });
+        };
+        
+        // Auth Screen
+        const AuthScreen = ({ onLogin }) => {
+            const [isLogin, setIsLogin] = useState(true);
+            const [loading, setLoading] = useState(false);
+            
+            const handleLogin = () => {
+                setLoading(true);
+                setTimeout(() => onLogin(), 1500);
+            };
+            
+            return (
+                <div className="min-h-screen bg-slate-950 flex">
+                    {/* Left Side - Branding */}
+                    <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
+                        <div className="absolute inset-0">
+                            <div className="absolute top-20 left-20 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl"></div>
+                            <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
+                        </div>
+                        <div className="relative z-10 flex flex-col justify-center px-20">
+                            <div className="mb-8">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center">
+                                        <Icon name="shield-check" size={32} className="text-white" />
+                                    </div>
+                                    <div>
+                                        <h1 className="text-4xl font-black text-white">SA Connect</h1>
+                                        <p className="text-slate-400">Digital Identity Platform</p>
+                                    </div>
+                                </div>
+                                <h2 className="text-5xl font-black text-white leading-tight mb-6">
+                                    Your Government Services,<br/>Simplified.
+                                </h2>
+                                <p className="text-xl text-slate-300 leading-relaxed">
+                                    Access all South African government services, financial institutions, and identity management from one secure platform.
+                                </p>
+                            </div>
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 text-slate-300">
+                                    <Icon name="check" size={20} className="text-cyan-400" />
+                                    <span>Bank-level security with biometric authentication</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-slate-300">
+                                    <Icon name="check" size={20} className="text-cyan-400" />
+                                    <span>Real-time application tracking</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-slate-300">
+                                    <Icon name="check" size={20} className="text-cyan-400" />
+                                    <span>Integrated with all major government departments</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Right Side - Auth Form */}
+                    <div className="flex-1 flex items-center justify-center p-8">
+                        <div className="w-full max-w-md">
+                            {/* Mobile Logo */}
+                            <div className="lg:hidden text-center mb-12">
+                                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-purple-600 mb-4">
+                                    <Icon name="shield-check" size={32} className="text-white" />
+                                </div>
+                                <h1 className="text-3xl font-black text-white mb-2">SA Connect</h1>
+                                <p className="text-slate-400">Digital Identity Platform</p>
+                            </div>
+                            
+                            {!loading ? (
+                                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-8">
+                                    {/* Toggle */}
+                                    <div className="flex gap-2 p-2 bg-slate-900/50 rounded-2xl mb-8">
+                                        <button
+                                            onClick={() => setIsLogin(true)}
+                                            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
+                                                isLogin 
+                                                    ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg shadow-cyan-500/30' 
+                                                    : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            Sign In
+                                        </button>
+                                        <button
+                                            onClick={() => setIsLogin(false)}
+                                            className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
+                                                !isLogin 
+                                                    ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white shadow-lg shadow-cyan-500/30' 
+                                                    : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            Register
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Form */}
+                                    <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                                ID Number or Email
+                                            </label>
+                                            <input
+                                                type="text"
+                                                defaultValue="8301015800083"
+                                                className="w-full px-4 py-4 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                                            />
+                                        </div>
+                                        
+                                        {!isLogin && (
+                                            <>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                                                        Full Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Full Name"
+                                                        className="w-full px-4 py-4 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                                                        Email Address
+                                                    </label>
+                                                    <input
+                                                        type="email"
+                                                        placeholder="email@example.co.za"
+                                                        className="w-full px-4 py-4 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-2">
+                                                Password
+                                            </label>
+                                            <input
+                                                type="password"
+                                                defaultValue="password123"
+                                                className="w-full px-4 py-4 rounded-xl bg-slate-900/50 border border-slate-700 text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                                            />
+                                        </div>
+                                        
+                                        {isLogin && (
+                                            <div className="flex items-center justify-between text-sm">
+                                                <label className="flex items-center gap-2 text-slate-300 cursor-pointer">
+                                                    <input type="checkbox" className="rounded" />
+                                                    <span>Remember me</span>
+                                                </label>
+                                                <button type="button" className="text-cyan-400 hover:text-cyan-300">
+                                                    Forgot password?
+                                                </button>
+                                            </div>
+                                        )}
+                                        
+                                        <button
+                                            type="submit"
+                                            className="w-full py-4 bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-cyan-500/50 transition-all"
+                                        >
+                                            {isLogin ? 'Sign In' : 'Create Account'}
+                                        </button>
+                                        
+                                        <div className="relative">
+                                            <div className="absolute inset-0 flex items-center">
+                                                <div className="w-full border-t border-slate-700"></div>
+                                            </div>
+                                            <div className="relative flex justify-center text-sm">
+                                                <span className="px-4 bg-slate-900 text-slate-400">Or continue with</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <button
+                                            type="button"
+                                            onClick={handleLogin}
+                                            className="w-full py-4 bg-slate-800/50 hover:bg-slate-800 border border-slate-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-3"
+                                        >
+                                            <Icon name="fingerprint" size={20} />
+                                            Biometric Authentication
+                                        </button>
+                                    </form>
+                                </div>
+                            ) : (
+                                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-3xl p-12 text-center">
+                                    <div className="relative w-32 h-32 mx-auto mb-8">
+                                        <div className="absolute inset-0 rounded-full border-4 border-cyan-500 border-t-transparent animate-spin"></div>
+                                        <div className="absolute inset-4 rounded-full bg-gradient-to-br from-cyan-500/20 to-purple-600/20 flex items-center justify-center backdrop-blur">
+                                            <Icon name="fingerprint" size={48} className="text-cyan-400" />
+                                        </div>
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-white mb-3">Authenticating</h3>
+                                    <p className="text-slate-400">Verifying your identity...</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // Navigation
+        const Navigation = ({ user, onLogout }) => {
+            return (
+                <nav className="sticky top-0 z-50 backdrop-blur-xl bg-slate-900/90 border-b border-slate-800">
+                    <div className="max-w-7xl mx-auto px-6">
+                        <div className="flex items-center justify-between h-20">
+                            {/* Logo */}
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center">
+                                    <Icon name="shield-check" size={24} className="text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold text-white">SA Connect</h1>
+                                    <p className="text-xs text-slate-400">Digital Identity</p>
+                                </div>
+                            </div>
+                            
+                            {/* Search */}
+                            <div className="hidden md:flex flex-1 max-w-xl mx-8">
+                                <div className="relative w-full">
+                                    <Icon name="search" size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search services..."
+                                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* Right Actions */}
+                            <div className="flex items-center gap-3">
+                                <button className="relative p-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-all">
+                                    <Icon name="bell" size={20} className="text-slate-300" />
+                                    <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                                </button>
+                                
+                                <div className="flex items-center gap-3 pl-3 ml-3 border-l border-slate-700">
+                                    <div className="text-right hidden lg:block">
+                                        <p className="text-sm font-semibold text-white">{user.firstName}</p>
+                                        <p className="text-xs text-slate-400">ID: {user.id.slice(-4)}</p>
+                                    </div>
+                                    <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center text-white font-bold">
+                                        {user.profileImage}
+                                    </div>
+                                </div>
+                                
+                                <button 
+                                    onClick={onLogout}
+                                    className="p-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all"
+                                >
+                                    <Icon name="log-out" size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            );
+        };
+        
+        // Home Page
+        const HomePage = ({ onNavigate }) => {
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedCategory, setSelectedCategory] = useState('All');
+            
+            const categories = ['All', 'Identity', 'Transport', 'Finance', 'Education', 'Government', 'Tax', 'Security', 'Business', 'Social Services', 'Travel'];
+            
+            const filteredServices = services.filter(service => {
+                const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                     service.description.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesCategory = selectedCategory === 'All' || service.category === selectedCategory;
+                return matchesSearch && matchesCategory;
+            });
+            
+            return (
+                <div className="min-h-screen bg-slate-950">
+                    {/* Hero Section */}
+                    <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-b border-slate-800">
+                        <div className="absolute inset-0">
+                            <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
+                            <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl"></div>
+                        </div>
+                        <div className="relative max-w-7xl mx-auto px-6 py-20">
+                            <div className="max-w-3xl">
+                                <h1 className="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
+                                    Welcome back,<br/>{mockUser.firstName}
+                                </h1>
+                                <p className="text-xl text-slate-300 mb-8">
+                                    Access all your government services, financial applications, and identity documents in one place.
+                                </p>
+                                
+                                {/* Quick Stats */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700 rounded-2xl p-6">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                                                <Icon name="shield-check" size={20} className="text-cyan-400" />
+                                            </div>
+                                        </div>
+                                        <p className="text-3xl font-black text-white">4</p>
+                                        <p className="text-sm text-slate-400">Verified Documents</p>
+                                    </div>
+                                    
+                                    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700 rounded-2xl p-6">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                                                <Icon name="file-text" size={20} className="text-purple-400" />
+                                            </div>
+                                        </div>
+                                        <p className="text-3xl font-black text-white">2</p>
+                                        <p className="text-sm text-slate-400">Active Applications</p>
+                                    </div>
+                                    
+                                    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700 rounded-2xl p-6">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                                                <Icon name="trending-up" size={20} className="text-green-400" />
+                                            </div>
+                                        </div>
+                                        <p className="text-3xl font-black text-white">15</p>
+                                        <p className="text-sm text-slate-400">Risk Score</p>
+                                    </div>
+                                    
+                                    <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700 rounded-2xl p-6">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                                                <Icon name="smartphone" size={20} className="text-amber-400" />
+                                            </div>
+                                        </div>
+                                        <p className="text-3xl font-black text-white">2</p>
+                                        <p className="text-sm text-slate-400">Tracked Devices</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Services Section */}
+                    <div className="max-w-7xl mx-auto px-6 py-12">
+                        {/* Search & Filter */}
+                        <div className="mb-8">
+                            <div className="flex flex-col md:flex-row gap-4 mb-6">
+                                <div className="relative flex-1">
+                                    <Icon name="search" size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search services..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-4 rounded-xl bg-slate-900/50 border border-slate-800 text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+                                    />
+                                </div>
+                                <button className="px-6 py-4 rounded-xl bg-slate-900/50 border border-slate-800 text-white hover:border-slate-700 transition-all flex items-center gap-2">
+                                    <Icon name="filter" size={20} />
+                                    Filter
+                                </button>
+                            </div>
+                            
+                            {/* Category Pills */}
+                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setSelectedCategory(cat)}
+                                        className={`px-4 py-2 rounded-xl font-semibold whitespace-nowrap transition-all ${
+                                            selectedCategory === cat
+                                                ? 'bg-gradient-to-r from-cyan-500 to-purple-600 text-white'
+                                                : 'bg-slate-900/50 border border-slate-800 text-slate-300 hover:border-slate-700'
+                                        }`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        
+                        {/* Services Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredServices.map(service => (
+                                <button
+                                    key={service.id}
+                                    onClick={() => onNavigate(service.id)}
+                                    className="group relative overflow-hidden rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 p-8 transition-all hover:scale-[1.02] text-left"
+                                >
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform"></div>
+                                    
+                                    <div className="relative">
+                                        <div className="flex items-start justify-between mb-6">
+                                            <div 
+                                                className="w-14 h-14 rounded-xl flex items-center justify-center"
+                                                style={{ backgroundColor: `${service.color}20` }}
+                                            >
+                                                <Icon name={service.icon} size={28} style={{ color: service.color }} />
+                                            </div>
+                                            <Icon name="chevron-right" size={24} className="text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                                        </div>
+                                        
+                                        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">
+                                            {service.name}
+                                        </h3>
+                                        <p className="text-sm text-slate-400 mb-4">{service.description}</p>
+                                        
+                                        <div className="flex items-center gap-2">
+                                            <span 
+                                                className="px-3 py-1 rounded-full text-xs font-semibold"
+                                                style={{ 
+                                                    backgroundColor: `${service.color}20`,
+                                                    color: service.color
+                                                }}
+                                            >
+                                                {service.category}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+        
+        // Driver's Licence Page
+        const DriversLicencePage = ({ onBack }) => {
+            const [activeView, setActiveView] = useState('overview');
+            const doc = mockDocuments.driversLicense;
+            
+            return (
+                <div className="min-h-screen bg-slate-950 animate-fade-in">
+                    {/* Header */}
+                    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border-b border-slate-800">
+                        <div className="max-w-7xl mx-auto px-6 py-8">
+                            <button 
+                                onClick={onBack}
+                                className="flex items-center gap-2 text-slate-400 hover:text-white mb-6 transition-colors"
+                            >
+                                <Icon name="chevron-left" size={20} />
+                                <span>Back to Services</span>
+                            </button>
+                            
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="w-16 h-16 rounded-2xl bg-cyan-500/20 flex items-center justify-center">
+                                    <Icon name="car" size={32} className="text-cyan-400" />
+                                </div>
+                                <div>
+                                    <h1 className="text-4xl font-black text-white mb-2">Driver's Licence</h1>
+                                    <p className="text-slate-400">Manage your driving credentials and services</p>
+                                </div>
+                            </div>
+                            
+                            {/* Sub Navigation */}
+                            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                {[
+                                    { id: 'overview', label: 'Overview' },
+                                    { id: 'view-licence', label: 'View Licence' },
+                                    { id: 'renew', label: 'Renew Licence' },
+                                    { id: 'book-test', label: 'Book Driving Test' },
+                                    { id: 'appointments', label: 'Appointments' },
+                                    { id: 'history', label: 'History & Records' }
+                                ].map(view => (
+                                    <button
+                                        key={view.id}
+                                        onClick={() => setActiveView(view.id)}
+                                        className={`px-6 py-3 rounded-xl font-semibold whitespace-nowrap transition-all ${
+                                            activeView === view.id
+                                                ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                                                : 'bg-slate-800/50 text-slate-300 hover:bg-slate-800'
+                                        }`}
+                                    >
+                                        {view.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="max-w-7xl mx-auto px-6 py-12">
+                        {activeView === 'overview' && (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                {/* Main Card */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    {/* Status Card */}
+                                    <div className="rounded-2xl bg-gradient-to-br from-cyan-900/20 to-slate-900 border border-cyan-500/20 p-8">
+                                        <div className="flex items-start justify-between mb-6">
+                                            <div>
+                                                <h2 className="text-2xl font-bold text-white mb-2">Licence Status</h2>
+                                                <p className="text-slate-400">Your current driving credentials</p>
+                                            </div>
+                                            <span className="px-4 py-2 rounded-xl bg-green-500/20 text-green-400 font-bold text-sm flex items-center gap-2">
+                                                <Icon name="check" size={16} />
+                                                ACTIVE
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div className="p-4 rounded-xl bg-slate-800/50">
+                                                <p className="text-sm text-slate-400 mb-1">Licence Number</p>
+                                                <p className="text-2xl font-bold text-white">{doc.number}</p>
+                                            </div>
+                                            <div className="p-4 rounded-xl bg-slate-800/50">
+                                                <p className="text-sm text-slate-400 mb-1">Expiry Date</p>
+                                                <p className="text-2xl font-bold text-white">{doc.expiryDate}</p>
+                                            </div>
+                                            <div className="p-4 rounded-xl bg-slate-800/50">
+                                                <p className="text-sm text-slate-400 mb-1">Licence Type</p>
+                                                <p className="text-lg font-bold text-white">{doc.licenseType}</p>
+                                            </div>
+                                            <div className="p-4 rounded-xl bg-slate-800/50">
+                                                <p className="text-sm text-slate-400 mb-1">Demerit Points</p>
+                                                <p className="text-lg font-bold text-white">{doc.demeritPoints}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Quick Actions */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button 
+                                            onClick={() => setActiveView('view-licence')}
+                                            className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-cyan-500/50 transition-all group text-left"
+                                        >
+                                            <Icon name="eye" size={28} className="text-cyan-400 mb-4" />
+                                            <h3 className="text-lg font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">View Digital Licence</h3>
+                                            <p className="text-sm text-slate-400">Access your digital driving licence card</p>
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => setActiveView('renew')}
+                                            className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-purple-500/50 transition-all group text-left"
+                                        >
+                                            <Icon name="repeat" size={28} className="text-purple-400 mb-4" />
+                                            <h3 className="text-lg font-bold text-white mb-2 group-hover:text-purple-400 transition-colors">Renew Licence</h3>
+                                            <p className="text-sm text-slate-400">Start your licence renewal process</p>
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => setActiveView('book-test')}
+                                            className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-amber-500/50 transition-all group text-left"
+                                        >
+                                            <Icon name="calendar" size={28} className="text-amber-400 mb-4" />
+                                            <h3 className="text-lg font-bold text-white mb-2 group-hover:text-amber-400 transition-colors">Book Driving Test</h3>
+                                            <p className="text-sm text-slate-400">Schedule learner's or driving test</p>
+                                        </button>
+                                        
+                                        <button 
+                                            onClick={() => setActiveView('appointments')}
+                                            className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-green-500/50 transition-all group text-left"
+                                        >
+                                            <Icon name="clock" size={28} className="text-green-400 mb-4" />
+                                            <h3 className="text-lg font-bold text-white mb-2 group-hover:text-green-400 transition-colors">Appointments</h3>
+                                            <p className="text-sm text-slate-400">View and manage appointments</p>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                {/* Sidebar */}
+                                <div className="space-y-6">
+                                    {/* Important Info */}
+                                    <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-6">
+                                        <h3 className="text-lg font-bold text-white mb-4">Important Information</h3>
+                                        <div className="space-y-4">
+                                            <div className="flex items-start gap-3">
+                                                <div className="p-2 rounded-lg bg-amber-500/20 mt-1">
+                                                    <Icon name="alert-circle" size={18} className="text-amber-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-white text-sm">Renewal Due</p>
+                                                    <p className="text-slate-400 text-sm">Your licence expires in {doc.nextRenewal}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="flex items-start gap-3">
+                                                <div className="p-2 rounded-lg bg-green-500/20 mt-1">
+                                                    <Icon name="check" size={18} className="text-green-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-white text-sm">Clean Record</p>
+                                                    <p className="text-slate-400 text-sm">No outstanding violations</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Testing Centre */}
+                                    <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-6">
+                                        <h3 className="text-lg font-bold text-white mb-4">Testing Centre</h3>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <p className="text-sm text-slate-400 mb-1">Current Centre</p>
+                                                <p className="text-white font-semibold">{doc.testingCenter}</p>
+                                            </div>
+                                            <button className="w-full py-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 font-semibold transition-all">
+                                                Change Centre
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Help & Support */}
+                                    <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-6">
+                                        <h3 className="text-lg font-bold text-white mb-4">Need Help?</h3>
+                                        <div className="space-y-3">
+                                            <button className="w-full py-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-white font-semibold transition-all flex items-center justify-center gap-2">
+                                                <Icon name="phone" size={18} />
+                                                Contact Support
+                                            </button>
+                                            <button className="w-full py-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-white font-semibold transition-all flex items-center justify-center gap-2">
+                                                <Icon name="book-open" size={18} />
+                                                View FAQ
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {activeView === 'view-licence' && (
+                            <div className="max-w-4xl mx-auto">
+                                <div className="text-center py-20">
+                                    <Icon name="car" size={64} className="text-cyan-400 mx-auto mb-6" />
+                                    <h2 className="text-3xl font-bold text-white mb-4">Digital Licence Card</h2>
+                                    <p className="text-slate-400 mb-8">Your driver's licence details</p>
+                                    <div className="max-w-2xl mx-auto p-8 rounded-2xl bg-slate-900/50 border border-slate-800">
+                                        <div className="space-y-4 text-left">
+                                            <div className="flex justify-between py-3 border-b border-slate-700">
+                                                <span className="text-slate-400">Licence Number</span>
+                                                <span className="font-bold text-white">{doc.number}</span>
+                                            </div>
+                                            <div className="flex justify-between py-3 border-b border-slate-700">
+                                                <span className="text-slate-400">Type</span>
+                                                <span className="font-bold text-white">{doc.licenseType}</span>
+                                            </div>
+                                            <div className="flex justify-between py-3 border-b border-slate-700">
+                                                <span className="text-slate-400">Issue Date</span>
+                                                <span className="font-bold text-white">{doc.issueDate}</span>
+                                            </div>
+                                            <div className="flex justify-between py-3">
+                                                <span className="text-slate-400">Expiry Date</span>
+                                                <span className="font-bold text-white">{doc.expiryDate}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {activeView === 'renew' && (
+                            <div className="max-w-3xl mx-auto">
+                                <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-8">
+                                    <h2 className="text-3xl font-bold text-white mb-8">Renew Your Driver's Licence</h2>
+                                    
+                                    <div className="space-y-6">
+                                        <div className="p-6 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
+                                            <div className="flex gap-4">
+                                                <Icon name="alert-circle" size={24} className="text-cyan-400 flex-shrink-0" />
+                                                <div>
+                                                    <h3 className="font-bold text-white mb-2">Renewal Process</h3>
+                                                    <p className="text-slate-300 text-sm">
+                                                        Your licence expires on <strong>{doc.expiryDate}</strong>. You can renew up to 60 days before expiry.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-300 mb-2">Testing Centre</label>
+                                                <select className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-cyan-500 focus:outline-none">
+                                                    <option>Randburg Driving Licence Testing Centre</option>
+                                                    <option>Sandton Driving Licence Testing Centre</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-300 mb-2">Preferred Date</label>
+                                                <input
+                                                    type="date"
+                                                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-cyan-500 focus:outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="p-6 rounded-xl bg-slate-800/50 border border-slate-700">
+                                            <h3 className="text-lg font-bold text-white mb-4">Fee Breakdown</h3>
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-300">Renewal Fee</span>
+                                                    <span className="text-white font-bold">R250.00</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span className="text-slate-400 text-sm">Platform Fee (3%)</span>
+                                                    <span className="text-cyan-400 font-semibold">R7.50</span>
+                                                </div>
+                                                <div className="border-t border-slate-700 pt-3 flex justify-between">
+                                                    <span className="text-white font-bold">Total Amount</span>
+                                                    <span className="text-2xl font-black text-white">R257.50</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <button className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold text-lg shadow-lg shadow-cyan-500/50 transition-all">
+                                            Proceed to Payment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {activeView === 'book-test' && (
+                            <div className="max-w-3xl mx-auto">
+                                <div className="rounded-2xl bg-slate-900/50 border border-slate-800 p-8">
+                                    <h2 className="text-3xl font-bold text-white mb-8">Book Your Driving Test</h2>
+                                    
+                                    <div className="space-y-6">
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-300 mb-2">Test Type</label>
+                                                <select className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-cyan-500 focus:outline-none">
+                                                    <option>Learner's Licence Test</option>
+                                                    <option>K53 Driving Test</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-semibold text-slate-300 mb-2">Licence Code</label>
+                                                <select className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-white focus:border-cyan-500 focus:outline-none">
+                                                    <option>Code 08 - Manual</option>
+                                                    <option>Code 08 - Automatic</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="p-6 rounded-xl bg-slate-800/50 border border-slate-700">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <span className="text-slate-300">Test Booking Fee</span>
+                                                <span className="text-white font-bold">R450.00</span>
+                                            </div>
+                                            <div className="flex justify-between items-center text-sm">
+                                                <span className="text-slate-400">Platform Fee (3%)</span>
+                                                <span className="text-cyan-400 font-semibold">R13.50</span>
+                                            </div>
+                                            <div className="border-t border-slate-700 mt-3 pt-3 flex justify-between items-center">
+                                                <span className="text-white font-bold">Total</span>
+                                                <span className="text-2xl font-black text-white">R463.50</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <button className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold text-lg shadow-lg shadow-cyan-500/50 transition-all">
+                                            Book Test & Pay
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+        
+        // Main App
+        function App() {
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [currentPage, setCurrentPage] = useState('home');
+            
+            if (!isLoggedIn) {
+                return <AuthScreen onLogin={() => setIsLoggedIn(true)} />;
+            }
+            
+            return (
+                <div className="min-h-screen bg-slate-950">
+                    <Navigation user={mockUser} onLogout={() => setIsLoggedIn(false)} />
+                    
+                    {currentPage === 'home' && (
+                        <HomePage onNavigate={(page) => setCurrentPage(page)} />
+                    )}
+                    
+                    {currentPage === 'drivers-license' && (
+                        <DriversLicencePage onBack={() => setCurrentPage('home')} />
+                    )}
+                </div>
+            );
+        }
+        
+        // Render
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
